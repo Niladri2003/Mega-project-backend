@@ -1,5 +1,5 @@
 const Course = require("../model/Course");
-const Tag = require("../model/Tag");
+const Category = require("../model/Category");
 const User = require("../model/User");
 const { uploadImageToCloudinary } = require("../utils/imageUploader");
 
@@ -7,8 +7,16 @@ const { uploadImageToCloudinary } = require("../utils/imageUploader");
 exports.createCourse = async (req, res) => {
   try {
     //data fetch from body
-    const { courseName, courseDescription, whatYouWillLearn, price, tag } =
-      req.body;
+    const {
+      courseName,
+      courseDescription,
+      whatYouWillLearn,
+      price,
+      tag,
+      category,
+      status,
+      instructions,
+    } = req.body;
     //get thumbnail
     const thumbnail = req.files.thumbnailImage;
 
@@ -18,17 +26,22 @@ exports.createCourse = async (req, res) => {
       !courseDescription ||
       !whatYouWillLearn ||
       !price ||
-      !tag
+      !tag ||
+      !thumbnail ||
+      !category
     ) {
       return res.status(400).json({
         success: false,
         message: "All fields are required",
       });
     }
-    //check for instructor to add in course
-    const userId = req.user.id;
-    const instructorDetails = await User.findById(userId);
-    console.log("Instructor details", instructorDetails);
+    if (!status || status === undefined) {
+      status = "Draft";
+    }
+    // Check if the user is an instructor
+    const instructorDetails = await User.findById(userId, {
+      accountType: "Instructor",
+    });
     //Todo --> verify that user id and instructor details are same or different
 
     if (!instructorDetails) {
@@ -38,18 +51,19 @@ exports.createCourse = async (req, res) => {
       });
     }
     //check given tag is valid or not
-    const tagDetails = await Tag.findById(tag);
-    if (!tagDetails) {
-      res.status(404).json({
+    const categoryDetails = await Category.findById(category);
+    if (!categoryDetails) {
+      return res.status(404).json({
         success: false,
-        message: "Tag details not found",
+        message: "Category Details Not Found",
       });
     }
-    //upload image to cloudinary
+    //Upload the Thumbnail to Cloudinary
     const thumbnailImage = await uploadImageToCloudinary(
       thumbnail,
       process.env.FOLDER_NAME
     );
+    console.log(thumbnailImage);
 
     //entry in db for new course
 
@@ -59,8 +73,11 @@ exports.createCourse = async (req, res) => {
       instructor: instructorDetails._id,
       whatYouWillLearn: whatYouWillLearn,
       price,
-      tag: tagDetails._id,
+      tag: tag,
+      category: categoryDetails._id,
       thumbnail: thumbnailImage.secure_url,
+      status: status,
+      instructions: instructions,
     });
     //add the new course in user schema  user(instructor)
     await User.findByIdAndUpdate(
@@ -72,9 +89,16 @@ exports.createCourse = async (req, res) => {
       },
       { new: true }
     );
-    //update tag Schema
-    //hw
-
+    // Add the new course to the Categories
+    await Category.findByIdAndUpdate(
+      { _id: category },
+      {
+        $push: {
+          course: newCourse._id,
+        },
+      },
+      { new: true }
+    );
     //return response
 
     return res.status(200).json({
@@ -83,6 +107,7 @@ exports.createCourse = async (req, res) => {
       data: newCourse,
     });
   } catch (e) {
+    // Handle any errors that occur during the creation of the course
     console.log(e);
     return res.status(500).json({
       success: false,
@@ -92,7 +117,7 @@ exports.createCourse = async (req, res) => {
 };
 
 // Get all Course handler function
-exports.showAllCourses = async (req, res) => {
+exports.getAllCourses = async (req, res) => {
   try {
     const allCourses = await Course.find(
       {},
@@ -111,6 +136,7 @@ exports.showAllCourses = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Data for all courses fetched succesfully",
+      data: allCourses,
     });
   } catch (e) {
     console.log(e);
@@ -121,3 +147,4 @@ exports.showAllCourses = async (req, res) => {
     });
   }
 };
+//getCourseDetails

@@ -1,35 +1,30 @@
 const Profile = require("../model/Profile");
 const User = require("../model/User");
+const { uploadImageToCloudinary } = require("../utils/imageUploader");
 
+// Method for updating a profile
 exports.updateProfile = async (req, res) => {
   try {
     //fetch data from req body
-    const { dateOfBirth = "", about = "", conatcNumber, gender } = req.body;
+    const { dateOfBirth = "", about = "", contactNumber } = req.body;
     //get user id
     const id = req.user.id;
-    //validation on data
-    if (!conatcNumber || !gender || !id) {
-      return res.status(400).json({
-        success: false,
-        message: "All fields are required",
-      });
-    }
-    // find profile
-    const uderDetails = await User.findById(id);
-    const profileId = uderDetails.additionalDetails;
-    const profileDetails = await Profile.findById(profileId);
-    //update profile
-    profileDetails.dateOfBrith = dateOfBirth;
-    profileDetails.about = about;
-    profileDetails.gender = gender;
-    profileDetails.contactNumber = contactNumber;
+    // Find the profile by id
+    const userDetails = await User.findById(id);
+    const profile = await Profile.findById(userDetails.additionalDetails);
 
-    await profileDetails.save();
+    // Update the profile fields
+    profile.dateOfBrith = dateOfBirth;
+    profile.about = about;
+    profile.contactNumber = contactNumber;
+
+    // Save the updated profile
+    await profile.save();
     //return response
     return res.status(200).json({
       success: true,
       message: "Profile updated Succesfully",
-      profileDetails,
+      profile,
     });
   } catch (e) {
     return res.status(500).json({
@@ -39,28 +34,32 @@ exports.updateProfile = async (req, res) => {
     });
   }
 };
+
 //delete account
 exports.deleteAccount = async (req, res) => {
   try {
+    // TODO: Find More on Job Schedule
+    // const job = schedule.scheduleJob("10 * * * * *", function () {
+    // 	console.log("The answer to life, the universe, and everything!");
+    // });
+    // console.log(job);
+
     //fetch get id
     const id = req.user.id;
     //validation
-    const userDetails = await User.findById(id);
-    if (!userDetails) {
+    const user = await User.findById(id);
+    if (!user) {
       return res.status(404).json({
         success: false,
         message: "User not found",
       });
     }
-    //1st-delete profile
-    await Profile.findByIdAndDelete({ _id: userDetails.additionalDetails });
-    //TODO-> HW unenrolled user from all enrolled courses
-    //2nd user delete
-    await User.findByIdAndDelete({ _id: id });
+    // Delete Assosiated Profile with the User
+    await Profile.findByIdAndDelete({ _id: user.userDetails });
+    // TODO: Unenroll User From All the Enrolled Courses
+    // Now Delete User
+    await user.findByIdAndDelete({ _id: id });
 
-    //Explore crone job-->How can we schedule a task
-
-    // return response
     return res.status(200).json({
       success: true,
       message: "Account deleted Succesfully",
@@ -73,6 +72,7 @@ exports.deleteAccount = async (req, res) => {
     });
   }
 };
+
 // get all details of user
 exports.getAllUserDetails = async (req, res) => {
   try {
@@ -83,6 +83,8 @@ exports.getAllUserDetails = async (req, res) => {
     const userDetails = await User.findById(id)
       .populate("additionalDetails")
       .exec();
+    console.log(userDetails);
+
     //return response
     return res.status(200).json({
       success: true,
@@ -92,8 +94,8 @@ exports.getAllUserDetails = async (req, res) => {
   } catch (e) {
     return res.status(500).json({
       success: false,
-      message: "Unable to find user , please try again",
       error: e.message,
     });
   }
 };
+//updateDisplayPicture

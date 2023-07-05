@@ -2,7 +2,7 @@ const SubSection = require("../model/SubSection");
 const Section = require("../model/Section");
 const { uploadImageToCloudinary } = require("../utils/imageUploader");
 
-//create subsection
+//Create a new sub-section for a given section
 
 exports.createSubsection = async (req, res) => {
   try {
@@ -38,7 +38,7 @@ exports.createSubsection = async (req, res) => {
         },
       },
       { new: true }
-    );
+    ).populate("subSection");
     // HW-> log updated sectuin Headers, after adding populate query
     //return response
     return res.status(200).json({

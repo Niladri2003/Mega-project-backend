@@ -12,9 +12,10 @@ exports.createSection = async (req, res) => {
         message: "All fields are required",
       });
     }
-    //create section
+    //Create a new section with the given name
     const newSection = await Section.create({ sectionName });
-    //update course with section object
+
+    //Add the new section to the course's content array
     const updateCourse = await Course.findByIdAndUpdate(
       courseId,
       {
@@ -23,7 +24,14 @@ exports.createSection = async (req, res) => {
         },
       },
       { new: true }
-    );
+    )
+      .populate({
+        path: "courseContent",
+        populate: {
+          path: "subSection",
+        },
+      })
+      .exec();
     //HW : use populate to replace section/Sub-section both in the updateCourseDetails
     //return response
     return res.status(200).json({
@@ -40,6 +48,7 @@ exports.createSection = async (req, res) => {
   }
 };
 
+// UPDATE a section
 exports.updateSection = async (req, res) => {
   try {
     //data fetch
@@ -60,17 +69,18 @@ exports.updateSection = async (req, res) => {
     //return response
     return res.status(200).json({
       success: true,
-      message: "Section updated Succesfully",
+      message: section,
     });
   } catch (e) {
+    console.error("Error updating section:", e);
     return res.status(500).json({
       success: false,
-      message: "Unable to update section , please try again",
-      error: e.message,
+      message: "Internal server error",
     });
   }
 };
 
+// DELETE a section
 exports.deleteSection = async (req, res) => {
   try {
     //get ID - assuming that we are sending id in params

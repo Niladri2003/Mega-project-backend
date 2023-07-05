@@ -1,45 +1,50 @@
-const mongoose=require("mongoose");
+const mongoose = require("mongoose");
 const mailSender = require("../utils/mailSender");
-
-const OTPSchema= new mongoose.Schema(
-    {
-        email:{
-            type:String,
-            required:true,
-        },
-        otp:{
-            type:Number,
-            required:true,
-        },
-        createdAt:{
-            type:Date,
-            default:Date.now(),
-            expires:5*60,
-        }
-    }
-);
+const emailTemplate = require("../mail/emailVerificationTemplate");
+const OTPSchema = new mongoose.Schema({
+  email: {
+    type: String,
+    required: true,
+  },
+  otp: {
+    type: Number,
+    required: true,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now(),
+    expires: 5 * 60, // The document will be automatically deleted after 5 minutes of its creation time
+  },
+});
 
 // a function -> Email Send
 
-async function sendVerificationEmail(email,otp){
-    try{
-        const mailResponse= await mailSender(email,"Verification email for StudyNotion",otp);
-        console.log("Email send Succesfully",mailResponse);
+async function sendVerificationEmail(email, otp) {
+  // Create a transporter to send emails
 
-    }catch(error){
-        console.log("Error occured while sending mail");
-        console.log(error);
-    }
+  // Define the email options
 
+  // Send the email
+  try {
+    const mailResponse = await mailSender(
+      email,
+      "Verification email",
+      emailTemplate(otp)
+    );
+    console.log("Email sent successfully: ", mailResponse.response);
+  } catch (error) {
+    console.log("Error occured while sending mail", error);
+    throw error;
+  }
 }
 
+// Define a post-save hook to send email after the document has been saved
+OTPSchema.pre("save", async function (next) {
+  console.log("New document saved to database");
+  if (this.isNew) {
+    await sendVerificationEmail(this.email, this.otp);
+  }
+  next();
+});
 
-OTPSchema.pre("save", async function(next){
-    await sendVerificationEmail(this.email,this.otp);
-    next();
-})
-
-
-
-
-module.exports= mongoose.model("OTP",OTPSchema);
+module.exports = mongoose.model("OTP", OTPSchema);

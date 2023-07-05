@@ -16,23 +16,24 @@ exports.resetPasswordToken = async (req, res) => {
       });
     }
     // Token generate
-    const token = crypto.randomUUID();
+    const token = crypto.randomBytes(20).toString("hex");
     //update user by adding token and expiration time
     const updatedDetails = await User.findOneAndUpdate(
       { email: email },
       {
         token: token,
-        resetPasswordExpires: Date.now() + 5 * 60 * 1000,
+        resetPasswordExpires: Date.now() + 3600000,
       },
       { new: true }
     );
+    console.log("DETAILS", updatedDetails);
     // url create
     const url = `http://localhost:3000/update-password/${token}`;
     //send mail containg url
     await mailSender(
       email,
-      "Password Reset Link",
-      `Password Reset Link:${url}`
+      "Password Reset",
+      `Your Link for email verification is ${url}. Please click this url to reset your password.`
     );
     // return response
     return res.json({
@@ -71,10 +72,10 @@ exports.resetPassword = async (req, res) => {
       });
     }
     //token time check
-    if (userdetails.resetPasswordExpires < Date.now()) {
-      return res.json({
+    if (!(userdetails.resetPasswordExpires > Date.now())) {
+      return res.status(403).json({
         success: false,
-        message: "token is expired please regenerate your token",
+        message: `Token is Expired, Please Regenerate Your Token`,
       });
     }
     //hash password
@@ -91,5 +92,11 @@ exports.resetPassword = async (req, res) => {
       success: true,
       message: "Password updation succesful",
     });
-  } catch (e) {}
+  } catch (e) {
+    return res.json({
+      error: error.message,
+      success: false,
+      message: `Some Error in Updating the Password`,
+    });
+  }
 };
