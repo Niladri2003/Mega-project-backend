@@ -4,9 +4,11 @@ const otpGenerator = require("otp-generator");
 const Profile = require("../model/Profile");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const mailsender = require("../utils/mailSender");
+const { passwordUpdate } = require("../mail/passwordUpdate");
 require("dotenv").config();
 
-//sendOTP
+//send OTP For Email Verification
 
 exports.sendOTP = async (req, res) => {
   try {
@@ -14,15 +16,18 @@ exports.sendOTP = async (req, res) => {
     const { email } = req.body;
 
     //check if user already exist
+    // Find user with provided email
     const checkUserPresent = await User.findOne({ email });
 
     //if User already exist
     if (checkUserPresent) {
+      // Return 401 Unauthorized status code with error message
       return res.status(401).json({
         success: false,
         message: "User already exist .Sign in",
       });
     }
+
     // generate otp
     var otp = otpGenerator.generate(6, {
       upperCaseAlphabets: false,
@@ -34,6 +39,9 @@ exports.sendOTP = async (req, res) => {
     //check unique otp or not
 
     const result = await OTP.findOne({ otp: otp });
+    console.log("Result is Generate otp Func");
+    console.log("OTP", otp);
+    console.log("Result", result);
 
     while (result) {
       otp = otpGenerator(6, {
@@ -115,14 +123,14 @@ exports.signUp = async (req, res) => {
       });
     }
 
-    //find most recent otp
+    //find most recent otp for the mail
     const recentOTP = await OTP.find({ email })
       .sort({ createdAt: -1 })
       .limit(1);
     console.log(recentOTP);
     //validate otp
     if (recentOTP.length == 0) {
-      //otp not found
+      //otp not found for the email
       return res.status(400).json({
         success: false,
         message: "OTP Found",
@@ -137,7 +145,11 @@ exports.signUp = async (req, res) => {
     //hash password
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    //create entry in db
+    //create the user
+    const approved = "";
+    approved === "Instructor" ? (approved = false) : (approved = true);
+
+    //create the additional profile for user
     const profileDetails = await Profile.create({
       gender: null,
       dateOfBrith: null,
@@ -149,7 +161,7 @@ exports.signUp = async (req, res) => {
       lastName,
       email,
       password: hashedPassword,
-      accountType,
+      accountType: accountType,
       contactNumber,
       additionalDetails: profileDetails._id,
       image: `https://api.dicebear.com/5.x/initials/svg?seed=${firstNAme}${lastName}`,
@@ -169,7 +181,7 @@ exports.signUp = async (req, res) => {
   }
 };
 
-//Login
+//Login controller for authenticationg users
 
 exports.login = async (req, res) => {
   try {
@@ -193,14 +205,14 @@ exports.login = async (req, res) => {
 
     // generate jwt, after password matching
     if (await bcrypt.compare(password, user.password)) {
-      const payload = {
-        email: user.email,
-        id: user._id,
-        accountType: user.accountType,
-      };
-      const token = jwt.sign(payload, process.env.JWT_SECRET, {
-        expiresIn: "2h",
-      });
+      const token = jwt.sign(
+        { email: user.email, id: user._id, role: user.role },
+        process.env.JWT_SECRET,
+        {
+          expiresIn: "24h",
+        }
+      );
+      // Save token to user document in database
       user.token = token;
       user.password = undefined;
 
@@ -210,7 +222,7 @@ exports.login = async (req, res) => {
         httpOnly: true,
       };
 
-      res.cookie("token", token, Options).status(200).jsin({
+      res.cookie("token", token, Options).status(200).json({
         success: true,
         token,
         user,
@@ -224,6 +236,7 @@ exports.login = async (req, res) => {
     }
   } catch (e) {
     console.log(e);
+    // Return 500 Internal Server Error status code with error message
     return res.status(500).json({
       success: false,
       message: "Log in failure please try Again",
@@ -233,10 +246,72 @@ exports.login = async (req, res) => {
 
 //changePAssword
 exports.changePassword = async (req, res) => {
-  //get data from req body
-  //get oldPassword new PAssword, configurepassword
-  //validation
-  //update pwd in db
-  // send mail --password update
-  //return response
+  try {
+    //get data from req body
+    const userDetails = await User.findById(req.user.id);
+
+    //get oldPassword new PAssword, configurepassword
+    const { oldPassword, newPassword, confirmPassword } = req.body;
+
+    //validation
+    const isPasswordMatch = await bcrypt.compare(
+      oldPassword,
+      userDetails.password
+    );
+
+    // If old password does not match, return a 401 (Unauthorized) error
+    if (!isPasswordMatch) {
+      return res
+        .status(401)
+        .json({ success: false, message: "The password is incorrect" });
+    }
+
+    // Match new password and confirm new password
+    if (newPassword !== confirmPassword) {
+      // If new password and confirm new password do not match, return a 400 (Bad Request) error
+      return res.status(400).json({
+        success: false,
+        message: "The password and confirm password does not match",
+      });
+    }
+    //update pwd in db
+    const encryptPassword = await bcrypt.hash(newPassword, 10);
+    const updateUserDetails = await User.findByIdAndUpdate(
+      req.user.id,
+      { password: encryptPassword },
+      { new: true }
+    );
+    // send mail --password update
+    try {
+      const emailResponse = await mailsender(
+        updateUserDetails.email,
+        passwordUpdate(
+          updateUserDetails.email,
+          `Password updated succesfully for ${updateUserDetails.firstName} ${updateUserDetails.lastName}`
+        )
+      );
+      console.log("Email sent succesfully:", emailResponse.response);
+    } catch (e) {
+      // If there's an error sending the email, log the error and return a 500 (Internal Server Error) error
+      console.error("Error occurred while sending email:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Error occurred while sending email",
+        error: error.message,
+      });
+    }
+    //return success response
+    return res.status(200).json({
+      success: true,
+      message: "Password updated succesfully",
+    });
+  } catch (e) {
+    // If there's an error updating the password, log the error and return a 500 (Internal Server Error) error
+    console.error("Error occurred while updating password:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error occurred while updating password",
+      error: error.message,
+    });
+  }
 };

@@ -25,6 +25,7 @@ exports.auth = async (req, res, next) => {
       console.log(decode);
       req.user = decode;
     } catch (e) {
+      //verifiaction issue
       return res.status(401).json({
         success: false,
         message: "Token is invalid",
@@ -38,6 +39,7 @@ exports.auth = async (req, res, next) => {
     });
   }
 };
+
 //isStudent
 
 exports.isStudent = async (req, res, next) => {
