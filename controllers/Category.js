@@ -46,7 +46,7 @@ exports.showAllCategories = async (req, res) => {
 exports.categoryPageDetails = async (req, res) => {
   try {
     const { categoryId } = req.body;
-    //get courses for the specifieed category
+    //get courses for the specified category
     const selectedCategory = await Category.findById(categoryId)
       .populate("courses")
       .exec();
@@ -67,10 +67,12 @@ exports.categoryPageDetails = async (req, res) => {
       });
     }
     const selectedCourses = selectedCategory.courses;
-    //get courses foe other categories
+    //get courses for other categories
     const categoriesExpectSelected = await Category.find({
       _id: { $ne: categoryId },
-    }).populate("courses");
+    })
+      .populate("courses")
+      .exec();
     let differentCourses = [];
     for (const category of categoriesExceptSelected) {
       differentCourses.push(...category.courses);

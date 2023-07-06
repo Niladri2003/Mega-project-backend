@@ -85,12 +85,13 @@ exports.capturePayment = async (req, res) => {
   }
 };
 
-//verify signature
+//verify signature of Razorpay and server
+
 exports.verifySignature = async (req, res) => {
   const webhookSecret = "12345678";
   const signature = req.headers["x-razorpay-signature"];
 
-  //here webhook secret is converted in digest
+  //here webhook secret is converted in digest(Encrypt form)
   const shasum = crypto.createHmac("sha256", webhookSecret);
 
   shasum.update(JSON.stringify(req.body));

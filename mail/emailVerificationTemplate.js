@@ -77,7 +77,7 @@ const otpTemplate = (otp) => {
 				<p>This OTP is valid for 5 minutes. If you did not request this verification, please disregard this email.
 				Once your account is verified, you will have access to our platform and its features.</p>
 			</div>
-			<div class="support">If you have any questions or need assistance, please feel free to reach out to us at <a
+			<div class="support">I am Niladri Adak this is only for testing purpose .If you have any questions or need assistance, please feel free to reach out to us at <a
 					href="mailto:info@studynotion.com">info@studynotion.com</a>. We are here to help!</div>
 		</div>
 	</body>

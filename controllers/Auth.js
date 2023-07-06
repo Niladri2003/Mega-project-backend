@@ -77,7 +77,7 @@ exports.signUp = async (req, res) => {
   try {
     //data fetch from request body
     const {
-      firstNAme,
+      firstName,
       lastName,
       email,
       password,
@@ -95,8 +95,6 @@ exports.signUp = async (req, res) => {
       !email ||
       !password ||
       !confirmPassword ||
-      !accountType ||
-      !contactNumber ||
       !otp
     ) {
       return res.status(403).json({
@@ -127,19 +125,21 @@ exports.signUp = async (req, res) => {
     const recentOTP = await OTP.find({ email })
       .sort({ createdAt: -1 })
       .limit(1);
-    console.log(recentOTP);
+    console.log("recent otp", recentOTP);
     //validate otp
-    if (recentOTP.length == 0) {
+    console.log("User otp", otp);
+    console.log("db otp", recentOTP[0].otp);
+    if (recentOTP.length === 0) {
       //otp not found for the email
       return res.status(400).json({
         success: false,
-        message: "OTP Found",
+        message: "OTP is not valid",
       });
-    } else if (otp !== recentOTP.otp) {
+    } else if (otp !== recentOTP[0].otp) {
       //invalid otp
       return res.status(400).json({
         success: false,
-        message: "Invalid OTP",
+        message: "The OTP is not valid",
       });
     }
     //hash password
@@ -157,7 +157,7 @@ exports.signUp = async (req, res) => {
       contactNumber: null,
     });
     const user = await User.create({
-      firstNAme,
+      firstName,
       lastName,
       email,
       password: hashedPassword,
