@@ -7,16 +7,18 @@ const { uploadImageToCloudinary } = require("../utils/imageUploader");
 exports.createSubsection = async (req, res) => {
   try {
     //fetch all data from req body
-    const { SectionId, title, timeDuration, description } = req.body;
+    const { SectionId, title, description } = req.body;
     //extract file
-    const video = req.files.videoFile;
+    const video = req.files.video;
     //validate data
-    if (!SectionId || !title || !timeDuration || !description || !video) {
+    console.log(SectionId, title, description);
+    if (!SectionId || !title || !description || !video) {
       return res.status(400).json({
         success: false,
         message: "All fields are rewuired",
       });
     }
+    console.log(video);
     //upload video to cloudinary
     const uploadDetails = await uploadImageToCloudinary(
       video,
@@ -25,7 +27,7 @@ exports.createSubsection = async (req, res) => {
     //create subsection
     const subSectionDetails = await SubSection.create({
       title: title,
-      timeDuration: timeDuration,
+      timeDuration: `${uploadDetails.duration}`,
       description: description,
       videoUrl: uploadDetails.secure_url,
     });

@@ -7,7 +7,8 @@ const { uploadImageToCloudinary } = require("../utils/imageUploader");
 exports.createCourse = async (req, res) => {
   try {
     //data fetch from body
-    const {
+    const userId = req.user.id;
+    let {
       courseName,
       courseDescription,
       whatYouWillLearn,
@@ -155,13 +156,13 @@ exports.getcourseDetails = async (req, res) => {
     //find course details
     const courseDetails = await Course.find({ _id: courseId })
       .populate({
-        path: "instrutor",
+        path: "instructor",
         populate: {
           path: "additionalDetails",
         },
       })
       .populate("category")
-      .populate("ratingAndReview")
+      //.populate("ratingAndReview")
       .populate({
         path: "courseContent",
         populate: {
@@ -184,7 +185,7 @@ exports.getcourseDetails = async (req, res) => {
       data: courseDetails,
     });
   } catch (e) {
-    console.log(e);
+    console.log("Inside course catch block");
     return res.status(500).json({
       success: false,
       message: e.message,

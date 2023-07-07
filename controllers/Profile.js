@@ -45,8 +45,10 @@ exports.deleteAccount = async (req, res) => {
     // console.log(job);
 
     //fetch get id
+    console.log("printing id", req.user.id);
     const id = req.user.id;
     //validation
+
     const user = await User.findById(id);
     if (!user) {
       return res.status(404).json({
@@ -55,16 +57,17 @@ exports.deleteAccount = async (req, res) => {
       });
     }
     // Delete Assosiated Profile with the User
-    await Profile.findByIdAndDelete({ _id: user.userDetails });
+    await Profile.findByIdAndDelete({ _id: user.additionalDetails });
     // TODO: Unenroll User From All the Enrolled Courses
     // Now Delete User
-    await user.findByIdAndDelete({ _id: id });
+    await User.findByIdAndDelete({ _id: id });
 
     return res.status(200).json({
       success: true,
       message: "Account deleted Succesfully",
     });
   } catch (e) {
+    console.log(e);
     return res.status(500).json({
       success: false,
       message: "Unable to delete account , please try again",

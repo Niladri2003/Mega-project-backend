@@ -127,8 +127,9 @@ exports.signUp = async (req, res) => {
       .limit(1);
     console.log("recent otp", recentOTP);
     //validate otp
-    console.log("User otp", otp);
-    console.log("db otp", recentOTP[0].otp);
+    // console.log("User otp", otp);
+    // console.log("db otp", recentOTP[0].otp);
+
     if (recentOTP.length === 0) {
       //otp not found for the email
       return res.status(400).json({
@@ -146,7 +147,7 @@ exports.signUp = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     //create the user
-    const approved = "";
+    let approved = "";
     approved === "Instructor" ? (approved = false) : (approved = true);
 
     //create the additional profile for user
@@ -164,7 +165,7 @@ exports.signUp = async (req, res) => {
       accountType: accountType,
       contactNumber,
       additionalDetails: profileDetails._id,
-      image: `https://api.dicebear.com/5.x/initials/svg?seed=${firstNAme}${lastName}`,
+      image: `https://api.dicebear.com/5.x/initials/svg?seed=${firstName}${lastName}`,
     });
     //return res
     return res.status(200).json({
@@ -206,7 +207,7 @@ exports.login = async (req, res) => {
     // generate jwt, after password matching
     if (await bcrypt.compare(password, user.password)) {
       const token = jwt.sign(
-        { email: user.email, id: user._id, role: user.role },
+        { email: user.email, id: user._id, accountType: user.accountType },
         process.env.JWT_SECRET,
         {
           expiresIn: "24h",

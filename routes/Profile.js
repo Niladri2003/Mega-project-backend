@@ -15,9 +15,9 @@ const {
 //************************************** */
 //      profile Routes
 
-router.delete("/deleteProfile", deleteAccount);
-router.put("/updateProfile", updateProfile);
-router.get("/getUserDetails", getAllUserDetails);
+router.delete("/deleteProfile", auth, deleteAccount);
+router.put("/updateProfile", auth, updateProfile);
+router.get("/getUserDetails", auth, getAllUserDetails);
 //get enrolled courses
 router.get("/getEnrolledCourses", auth, getEnrolledCourses);
 router.put("/updateDisplayPicture", auth, updateDisplayPicture);
