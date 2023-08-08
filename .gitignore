@@ -1,2 +1,26 @@
+<<<<<<< HEAD
 ./node_modules
 .env
+=======
+
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# production
+/build
+
+# misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+>>>>>>> 417fc42c46e05e10379839d6817a2e9a7366e1d0
